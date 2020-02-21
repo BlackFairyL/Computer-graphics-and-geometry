@@ -124,7 +124,12 @@ int main(int argc, char *argv[]) {
 		flag = 1;
 	}
 
-	fread(&pixel[0], sizeof(unsigned char), pixel.size(), fin);
+	int cnt = fread(&pixel[0], sizeof(unsigned char), pixel.size(), fin);
+	if (number == '5' && cnt != h * w || number == '6' && cnt != 3 * h * w) {
+		cout << "Incorrect data in the file";
+		return 0;
+	}
+
 	fclose(fin);
 
 	if (transform == 0)
@@ -142,6 +147,11 @@ int main(int argc, char *argv[]) {
 		swap(h, w);
 	}
 	FILE* fout = fopen(name_out.c_str(), "wb");
+	
+	if (!fout) {
+		cout << "Invalid output file";
+		return 0;
+	}
 
 	fprintf(fout, "%c%c\n%d %d\n%d\n", p, number, w, h, color);
 	fwrite(&pixel[0], sizeof(unsigned char), pixel.size(), fout);
