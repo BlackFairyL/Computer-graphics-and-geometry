@@ -1,4 +1,3 @@
-﻿#include "pch.h"
 #define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <string>	
@@ -9,30 +8,36 @@ using namespace std;
 
 const double EPS = 1e-5;
 
-void to_black(vector<unsigned char> &pixel) {
+void to_black(vector<unsigned char>& pixel) {
 	pixel.assign(pixel.size(), 0);
 }
 
-void draw_point(vector<unsigned char> &pixel, int &x, int &y, int &mx, int &my, int bright, double &gamma, char &type) {
+void draw_point(vector<unsigned char>& pixel, int& x, int& y, int& mx, int& my, double bright, double normal, double& gamma, char& type) {
 	if (bright == 0) {
 		return;
 	}
 	if (type == '5') {
-		pixel[x * my + y] = pow(bright / 255.0, 1. / gamma) * 255;
+		double newGamma = pow(bright / 255.0, gamma);
+		double pixelGamma = pow(pixel[x * my + y] / 255.0, gamma);
+		pixel[x * my + y] =  pow((1 - normal) * pixelGamma + normal * newGamma, 1 / gamma) * 255;
 	}
 	else {
-		pixel[x * my * 3 + y * 3] = pow(bright / 255.0, 1. / gamma) * 255;
-		pixel[x * my * 3 + y * 3 + 1] = pow(bright / 255.0, 1. / gamma) * 255;
-		pixel[x * my * 3 + y * 3 + 2] = pow(bright / 255.0, 1. / gamma) * 255;
+		double newGamma = pow(bright / 255.0, gamma);
+		double pixelGamma = pow(pixel[x * my * 3 + y * 3] / 255.0, gamma);
+		double pixelGamma1 = pow(pixel[x * my * 3 + y * 3 + 1] / 255.0, gamma);
+		double pixelGamma2 = pow(pixel[x * my * 3 + y * 3 + 2] / 255.0, gamma);
+		pixel[x * my * 3 + y * 3] = pow((1 - normal) * pixelGamma + normal * newGamma, 1 / gamma) * 255;
+		pixel[x * my * 3 + y * 3 + 1] = pow((1 - normal) * pixelGamma1 + normal * newGamma, 1 / gamma) * 255;
+		pixel[x * my * 3 + y * 3 + 2] = pow((1 - normal) * pixelGamma2 + normal * newGamma, 1 / gamma) * 255;
 	}
 }
 
-double dist(double &x1, double &y1, double &x2, double &y2) {
+double dist(double& x1, double& y1, double& x2, double& y2) {
 	double dx = x1 - x2, dy = y1 - y2;
 	return sqrt(dx * dx + dy * dy);
 }
 
-double min_dist(double &xs, double &ys, double &xf, double &yf, double findx, double findy) {
+double min_dist(double& xs, double& ys, double& xf, double& yf, double findx, double findy) {
 	double to_st = dist(xs, ys, findx, findy), to_fi = dist(xf, yf, findx, findy), len = dist(xs, ys, xf, yf), temp = 0.0;
 	double A = yf - ys, B = xf - xs, C = ys * xf - yf * xs, H;
 	H = fabs(A * findx - B * findy + C) / sqrt(A * A + B * B);
@@ -41,7 +46,7 @@ double min_dist(double &xs, double &ys, double &xf, double &yf, double findx, do
 	return min(min(to_st, to_fi), H);
 }
 
-double normal(double dist, double &thick) {
+double normal(double dist, double& thick) {
 	if (dist >= thick + 1.0) // расстояние до точки больше толщины линии и погрешности -> не красим
 		return 0.0;
 	if (dist <= thick) // точка есть часть прямой, яркость как есть
@@ -49,7 +54,7 @@ double normal(double dist, double &thick) {
 	return 1.0 - dist + thick; // высчитываем погрешность, чем выше погрешность - тем тусклее точка
 }
 
-void draw_line(vector<unsigned char> &pixel, double &xs, double &ys, double &xf, double&yf, int &mx, int &my, int &bright, double &thick, double &gamma, char &type) {
+void draw_line(vector<unsigned char>& pixel, double xs, double ys, double& xf, double yf, int& mx, int& my, int& bright, double& thick, double& gamma, char& type) {
 	if (xs > xf) {
 		swap(xs, xf);
 		swap(ys, yf);
@@ -59,19 +64,19 @@ void draw_line(vector<unsigned char> &pixel, double &xs, double &ys, double &xf,
 	if (xs == xf || ys == yf)
 		for (int x = max(0, int(xs - thick_cor)); x <= min(mx - 1, int(xf + thick_cor)); x++)
 			for (int y = max(0, int(ys - thick_cor)); y <= min(my - 1, int(yf + thick_cor)); y++)
-				draw_point(pixel, x, y, mx, my, bright * normal(min_dist(xs, ys, xf, yf, x, y), thick), gamma, type);
+				draw_point(pixel, x, y, mx, my, bright, normal(min_dist(xs, ys, xf, yf, x, y), thick), gamma, type);
 	else {
-		//алгоритм Ву
+		//алгоритм не Ву
 		double grad = (yf - ys) / (xf - xs), ynow = ys;
 		for (int x = max(0, int(xs - thick_cor)); x <= min(mx, int(xf + thick_cor)); x++) {
 			for (int y = max(0, int(ynow - fabs(grad) - thick_cor)); y <= min(my, int(ynow + fabs(grad) + thick_cor)); y++)
-				draw_point(pixel, x, y, mx, my, bright * normal(min_dist(xs, ys, xf, yf, x, y), thick), gamma, type);
+				draw_point(pixel, x, y, mx, my, bright, normal(min_dist(xs, ys, xf, yf, x, y), thick), gamma, type);
 			ynow += (x >= xs && x <= xf ? grad : 0);
 		}
 	}
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
 
 	if (argc != 10 && argc != 9) {
 		cerr << "Invalid request";
@@ -81,14 +86,15 @@ int main(int argc, char *argv[]) {
 	string name_out = argv[2];
 	int bright = atoi(argv[3]);
 	double	thick = (atof(argv[4]) - 1) / 2.0,	// корректируем толщину
-			xs = atof(argv[5]),
-			ys = atof(argv[6]),
-			xf = atof(argv[7]),
-			yf = atof(argv[8]),
-		gamma = (argc == 10 ? atof(argv[9]) : 2.2);
+		xs = atof(argv[5]),
+		ys = atof(argv[6]),
+		xf = atof(argv[7]),
+		yf = atof(argv[8]),
+		gamma = (argc == 10 ? atof(argv[9]) : 2);
 	//kgig.exe <имя_входного_файла> <имя_выходного_файла> <яркость_линии> <толщина_линии> <x_начальный> <y_начальный> <x_конечный> <y_конечный> <гамма>
-
-	FILE * fin = fopen(name_in.c_str(), "rb");
+	swap(xs, ys);
+	swap(xf, yf);
+	FILE* fin = fopen(name_in.c_str(), "rb");
 	if (!fin) {
 		cerr << "Invalid input file";
 		return 1;
