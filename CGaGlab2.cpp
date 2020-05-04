@@ -54,7 +54,7 @@ double normal(double dist, double& thick) {
 	return 1.0 - dist + thick; // высчитываем погрешность, чем выше погрешность - тем тусклее точка
 }
 
-void draw_line(vector<unsigned char>& pixel, double xs, double ys, double& xf, double yf, int& mx, int& my, int& bright, double& thick, double& gamma, char& type) {
+void draw_line(vector<unsigned char>& pixel, double xs, double ys, double xf, double yf, int& mx, int& my, int& bright, double& thick, double& gamma, char& type) {
 	if (xs > xf) {
 		swap(xs, xf);
 		swap(ys, yf);
