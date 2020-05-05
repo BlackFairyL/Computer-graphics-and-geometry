@@ -37,15 +37,15 @@ double dist(double& x1, double& y1, double& x2, double& y2) {
 	return sqrt(dx * dx + dy * dy);
 }
 
-double min_dist(double& xs, double& ys, double& xf, double& yf, double findx, double findy) {
+double min_dist(double& xs, double& ys, double& xf, double& yf, double findx, double findy, double thick) {
 	double to_st = dist(xs, ys, findx, findy), to_fi = dist(xf, yf, findx, findy), len = dist(xs, ys, xf, yf), temp = 0.0;
-	double A = yf - ys, B = xf - xs, C = ys * xf - yf * xs, H;
+	double A = yf - ys, B = xf - xs, C = ys * xf - yf * xs, H; 
 	H = fabs(A * findx - B * findy + C) / sqrt(A * A + B * B);
-	if (to_st >= dist(to_fi, len, temp, temp) || to_fi >= dist(to_st, len, temp, temp))
-		H = to_st;
-	return min(min(to_st, to_fi), H);
+	if (to_st > dist(to_fi, len, temp, temp) || to_fi > dist(to_st, len, temp, temp))
+		H = thick * 2;
+	return H;
 }
-
+	
 double normal(double dist, double& thick) {
 	if (dist >= thick + 1.0) // расстояние до точки больше толщины линии и погрешности -> не красим
 		return 0.0;
@@ -54,7 +54,7 @@ double normal(double dist, double& thick) {
 	return 1.0 - dist + thick; // высчитываем погрешность, чем выше погрешность - тем тусклее точка
 }
 
-void draw_line(vector<unsigned char>& pixel, double xs, double ys, double xf, double yf, int& mx, int& my, int& bright, double& thick, double& gamma, char& type) {
+void draw_line(vector<unsigned char>& pixel, double xs, double ys, double& xf, double yf, int& mx, int& my, int& bright, double& thick, double& gamma, char& type) {
 	if (xs > xf) {
 		swap(xs, xf);
 		swap(ys, yf);
@@ -64,13 +64,13 @@ void draw_line(vector<unsigned char>& pixel, double xs, double ys, double xf, do
 	if (xs == xf || ys == yf)
 		for (int x = max(0, int(xs - thick_cor)); x <= min(mx - 1, int(xf + thick_cor)); x++)
 			for (int y = max(0, int(ys - thick_cor)); y <= min(my - 1, int(yf + thick_cor)); y++)
-				draw_point(pixel, x, y, mx, my, bright, normal(min_dist(xs, ys, xf, yf, x, y), thick), gamma, type);
+				draw_point(pixel, x, y, mx, my, bright, normal(min_dist(xs, ys, xf, yf, x, y, thick), thick), gamma, type);
 	else {
 		//алгоритм не Ву
 		double grad = (yf - ys) / (xf - xs), ynow = ys;
-		for (int x = max(0, int(xs - thick_cor)); x <= min(mx, int(xf + thick_cor)); x++) {
-			for (int y = max(0, int(ynow - fabs(grad) - thick_cor)); y <= min(my, int(ynow + fabs(grad) + thick_cor)); y++)
-				draw_point(pixel, x, y, mx, my, bright, normal(min_dist(xs, ys, xf, yf, x, y), thick), gamma, type);
+		for (int x = max(0, int(xs - thick_cor)); x <= min(mx - 1, int(xf + thick_cor)); x++) {
+			for (int y = max(0, int(ynow - fabs(grad) - thick_cor)); y <= min(my - 1, int(ynow + fabs(grad) + thick_cor)); y++)
+				draw_point(pixel, x, y, mx, my, bright, normal(min_dist(xs, ys, xf, yf, x, y, thick), thick), gamma, type);
 			ynow += (x >= xs && x <= xf ? grad : 0);
 		}
 	}
@@ -97,6 +97,7 @@ int main(int argc, char* argv[]) {
 	FILE* fin = fopen(name_in.c_str(), "rb");
 	if (!fin) {
 		cerr << "Invalid input file";
+		fclose(fin);
 		return 1;
 	}
 
@@ -105,11 +106,13 @@ int main(int argc, char* argv[]) {
 	int count = fscanf(fin, "%c%c\n%d %d\n%d\n", &p, &number, &w, &h, &color);
 	if (count != 5) {
 		cerr << "Incorrect file content";
+		fclose(fin);
 		return 1;
 	}
 
 	if (!(p == 'P' && (number == '5' || number == '6')) || h <= 0 || w <= 0 || color > 255 || color <= 0) {
 		cerr << "Incorrect data in the file";
+		fclose(fin);
 		return 1;
 	}
 	bool flag = 0;
@@ -125,6 +128,7 @@ int main(int argc, char* argv[]) {
 	int cnt = fread(&pixel[0], sizeof(unsigned char), pixel.size(), fin);
 	if (number == '5' && cnt != h * w || number == '6' && cnt != 3 * h * w) {
 		cerr << "Incorrect data in the file";
+		fclose(fin);
 		return 1;
 	}
 
@@ -136,6 +140,7 @@ int main(int argc, char* argv[]) {
 		-0.5 < thick &&
 		0 < gamma)) {
 		cerr << "Incorrect arguments in console";
+		fclose(fin);
 		return 1;
 	}
 
