@@ -13,13 +13,10 @@ void to_black(vector<unsigned char>& pixel) {
 }
 
 void draw_point(vector<unsigned char>& pixel, int& x, int& y, int& mx, int& my, double bright, double normal, double& gamma, char& type) {
-	if (bright == 0) {
-		return;
-	}
 	if (type == '5') {
 		double newGamma = pow(bright / 255.0, gamma);
 		double pixelGamma = pow(pixel[x * my + y] / 255.0, gamma);
-		pixel[x * my + y] =  pow((1 - normal) * pixelGamma + normal * newGamma, 1 / gamma) * 255;
+		pixel[x * my + y] = pow((1 - normal) * pixelGamma + normal * newGamma, 1 / gamma) * 255;
 	}
 	else {
 		double newGamma = pow(bright / 255.0, gamma);
@@ -39,13 +36,26 @@ double dist(double& x1, double& y1, double& x2, double& y2) {
 
 double min_dist(double& xs, double& ys, double& xf, double& yf, double findx, double findy, double thick) {
 	double to_st = dist(xs, ys, findx, findy), to_fi = dist(xf, yf, findx, findy), len = dist(xs, ys, xf, yf), temp = 0.0;
-	double A = yf - ys, B = xf - xs, C = ys * xf - yf * xs, H; 
+	double dx = (xf - xs) / len, dy = (yf - ys) / len;
+	double xns = xs - dx, yns = ys - dy, xnf = xf + dx, ynf = yf + dy;
+	double to_ns = dist(xns, yns, findx, findy), to_nf = dist(xnf, ynf, findx, findy), len_new = dist(xns, yns, xnf, ynf);
+	double A = yf - ys, B = xf - xs, C = ys * xf - yf * xs, H;
 	H = fabs(A * findx - B * findy + C) / sqrt(A * A + B * B);
-	if (to_st > dist(to_fi, len, temp, temp) || to_fi > dist(to_st, len, temp, temp))
-		H = thick * 2;
+	if (to_st * to_st > to_fi * to_fi + len * len || to_fi * to_fi > to_st * to_st + len * len)
+		if (to_ns * to_ns > to_nf * to_nf + len_new * len_new || to_nf * to_nf > to_ns * to_ns + len_new * len_new || H > thick + 1.0 - EPS)
+			H = (thick + 1) * 2;
+		else {
+			double procx, procy; // проекция точки на прямую для сглаживания
+			double ay = -dx * H, ax = dy * H;
+			if (A * (findx + ax) - B * (findy + ay) + C < EPS)
+				procx = findx + ax, procy = findy + ay;
+			else
+				procx = findx - ax, procy = findy - ay;
+			H = min(dist(procx, procy, xs, ys), dist(procx, procy, xf, yf)) + thick - EPS;
+		}
 	return H;
 }
-	
+
 double normal(double dist, double& thick) {
 	if (dist >= thick + 1.0) // расстояние до точки больше толщины линии и погрешности -> не красим
 		return 0.0;
@@ -54,12 +64,12 @@ double normal(double dist, double& thick) {
 	return 1.0 - dist + thick; // высчитываем погрешность, чем выше погрешность - тем тусклее точка
 }
 
-void draw_line(vector<unsigned char>& pixel, double xs, double ys, double& xf, double yf, int& mx, int& my, int& bright, double& thick, double& gamma, char& type) {
+void draw_line(vector<unsigned char>& pixel, double xs, double ys, double xf, double yf, int& mx, int& my, int& bright, double& thick, double& gamma, char& type) {
 	if (xs > xf) {
 		swap(xs, xf);
 		swap(ys, yf);
 	}
-	double thick_cor = thick + 2.0 - EPS;
+	double thick_cor = thick * 2 + 2.0 - EPS;
 	// direct line
 	if (xs == xf || ys == yf)
 		for (int x = max(0, int(xs - thick_cor)); x <= min(mx - 1, int(xf + thick_cor)); x++)
