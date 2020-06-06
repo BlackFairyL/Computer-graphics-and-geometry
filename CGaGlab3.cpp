@@ -1,4 +1,4 @@
-﻿#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <string>	
 #include <vector>
@@ -11,7 +11,7 @@ const double EPS = 1e-5;
 
 void gradient(vector<unsigned char>& pixel, int& h, int& w) {
 	for (int i = 0; i < h * w; i++) {
-		pixel[i] = (i % w) * 255 / w;
+		pixel[i] = (i % w) * 256 / w;
 	}
 }
 
@@ -167,17 +167,17 @@ void atkinson_dithering(vector<unsigned char>& pixel, int& h, int& w, int& bit, 
 	}
 }
 
-int halftone_matrix[4][4] = {
-	{7, 13, 11, 4},
-	{12, 16, 14, 8},
-	{10, 15, 6, 2},
-	{5, 9, 3, 1},
+double halftone_matrix[4][4] = {
+		{0.375,  0.75,   0.625,  0.1875},
+		{0.6875, 0.9375, 0.8125, 0.4375},
+		{0.5625, 0.875,  0.3125, 0.0625},
+		{0.25,   0.5,    0.125,  0.0}
 };
 void halftone(vector<unsigned char>& pixel, int& h, int& w, int& bit, int& color) {
 	double bm, now;
 	for (int i = 0; i < h * w; i++) {
 		now = (double)pixel[i] / (double)color;
-		bm = (double)halftone_matrix[(i / w) % 4][(i % w) % 4] / 16. - 0.5;
+		bm = halftone_matrix[(i / w) % 4][(i % w) % 4] - 0.5;
 		now = (now + bm > 1 ? 1 : (now + bm < 0 ? 0 : now + bm));
 		pixel[i] = nearest_color(now * color, bit, color);
 	}
@@ -245,6 +245,19 @@ int main(int argc, char* argv[]) {
 	}
 
 	fclose(fin);
+
+	for (int i = 0; i < h * w; i++) {
+		double now = (double)pixel[i] / (double)color;
+		if (gamma != 0)
+			pixel[i] = pow(now, gamma) * (double)color;
+		else
+			if (now <= 0.0031308) {
+				return 323.0 * now / 25.0;
+			}
+			else {
+				return (211 * pow(now, 5.0 / 12.0) - 11) / 200.0;
+			}
+	}
 
 	if (grad)
 		gradient(pixel, h, w);
