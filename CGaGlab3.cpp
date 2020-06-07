@@ -287,10 +287,17 @@ int main(int argc, char* argv[]) {
 		halftone(pixel, h, w, bits, color);
 	}
 
-	// gamma corr
 	for (int i = 0; i < h * w; i++) {
 		double now = (double)pixel[i] / (double)color;
-		pixel[i] = pow(now, gamma) * (double)color;
+		if (gamma != 0)
+			pixel[i] = pow(now, 1. / gamma) * (double)color;
+		else
+			if (now <= 0.04045) {
+				return 25.0 * now / 323;
+			}
+			else {
+				return pow((200 * now + 11) / 211.0, 12.0 / 5.0);
+			}
 	}
 
 	FILE* fout = fopen(name_out.c_str(), "wb");
