@@ -246,16 +246,16 @@ int main(int argc, char* argv[]) {
 
 	fclose(fin);
 
-	for (int i = 0; i < h * w; i++) {
+		for (int i = 0; i < h * w; i++) {
 		double now = (double)pixel[i] / (double)color;
 		if (gamma != 0)
 			pixel[i] = pow(now, gamma) * (double)color;
 		else
 			if (now <= 0.0031308) {
-				return 323.0 * now / 25.0;
+				pixel[i] = (323.0 * now / 25.0) * (double)color;
 			}
 			else {
-				return (211 * pow(now, 5.0 / 12.0) - 11) / 200.0;
+				pixel[i] = ((211 * pow(now, 5.0 / 12.0) - 11) / 200.0) * (double)color;
 			}
 	}
 
@@ -293,10 +293,10 @@ int main(int argc, char* argv[]) {
 			pixel[i] = pow(now, 1. / gamma) * (double)color;
 		else
 			if (now <= 0.04045) {
-				return 25.0 * now / 323;
+				pixel[i] = (25.0 * now / 323) * (double)color;
 			}
 			else {
-				return pow((200 * now + 11) / 211.0, 12.0 / 5.0);
+				pixel[i] = (pow((200 * now + 11) / 211.0, 12.0 / 5.0) > 255 ? 255 : pow((200 * now + 11) / 211.0, 12.0 / 5.0)) * (double)color;
 			}
 	}
 
