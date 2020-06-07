@@ -213,7 +213,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (!(p == 'P' && (number == '5' || number == '6')) || h <= 0 || w <= 0 || color > 255 || color <= 0) {
-		cerr << "Incorrect data in the file";
+		cerr << "Incorrect data in the file ";
 		fclose(fin);
 		return 1;
 	}
