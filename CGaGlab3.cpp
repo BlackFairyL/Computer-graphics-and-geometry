@@ -11,13 +11,18 @@ const double EPS = 1e-5;
 
 void gradient(vector<unsigned char>& pixel, int& h, int& w) {
 	for (int i = 0; i < h * w; i++) {
-		pixel[i] = (i % w) * 256 / w;
+		pixel[i] = (i % w) * 255 / (w - 1);
 	}
 }
 
 unsigned char nearest_color(int color, int& bit, int& pal) {
-	double intense = (double)color / (double)pal;
-	return round(intense * ((1 << bit) - 1)) / ((1 << bit) - 1) * 255;
+	unsigned char c = (((1u << bit) - 1) << (8 - bit));
+	c = (color & c);
+	color = 0;
+	for (unsigned char i = 0; i < 8 / bit + 1; i++) {
+		color = (color | ((c >> (bit * i))));
+	}
+	return color;
 }
 
 void no_dithering(vector<unsigned char>& pixel, int& h, int& w, int& bit, int& color) {
@@ -245,19 +250,19 @@ int main(int argc, char* argv[]) {
 	}
 
 	fclose(fin);
-
-	for (int i = 0; i < h * w; i++) {
+	/*for (int i = 0; i < h * w; i++) {
 		double now = (double)pixel[i] / (double)color;
 		if (gamma != 0)
-			pixel[i] = pow(now, gamma) * (double)color;
+			pixel[i] = pow(now, 1. / gamma) * (double)color;
 		else
-			if (now <= 0.0031308) {
-				pixel[i] = (323.0 * now / 25.0) * (double)color;
+			if (now <= 0.04045) {
+				pixel[i] = (25.0 * now / 323) * (double)color;
 			}
 			else {
-				pixel[i] = ((211 * pow(now, 5.0 / 12.0) - 11) / 200.0) * (double)color;
+				pixel[i] = (pow((200 * now + 11) / 211.0, 12.0 / 5.0) > 255 ? 255 : pow((200 * now + 11) / 211.0, 12.0 / 5.0)) * (double)color;
 			}
-	}
+	}*/
+
 
 	if (grad)
 		gradient(pixel, h, w);
@@ -288,15 +293,15 @@ int main(int argc, char* argv[]) {
 	}
 
 	for (int i = 0; i < h * w; i++) {
-		double now = (double)pixel[i] / (double)color;
+		double now = (double)pixel[i] / (double)255;
 		if (gamma != 0)
-			pixel[i] = pow(now, 1. / gamma) * (double)color;
+			pixel[i] = pow(now, gamma) * 255 > 255 ? 255 : pow(now, gamma) * 255;
 		else
-			if (now <= 0.04045) {
-				pixel[i] = (25.0 * now / 323) * (double)color;
+			if (now <= 0.0031308) {
+				pixel[i] = (323.0 * now / 25.0) * (double)color;
 			}
 			else {
-				pixel[i] = (pow((200 * now + 11) / 211.0, 12.0 / 5.0) > 255 ? 255 : pow((200 * now + 11) / 211.0, 12.0 / 5.0)) * (double)color;
+				pixel[i] = ((211 * pow(now, 5.0 / 12.0) - 11) / 200.0) * (double)color;
 			}
 	}
 
