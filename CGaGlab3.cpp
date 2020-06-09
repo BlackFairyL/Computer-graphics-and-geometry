@@ -11,7 +11,7 @@ const double EPS = 1e-5;
 
 void gradient(vector<unsigned char>& pixel, int& h, int& w) {
 	for (int i = 0; i < h * w; i++) {
-		pixel[i] = (i % w) * 255 / (w - 1);
+		pixel[i] = (i % w) * 256 / w;
 	}
 }
 
@@ -19,7 +19,7 @@ unsigned char nearest_color(int color, int& bit, int& pal) {
 	unsigned char c = (((1u << bit) - 1) << (8 - bit));
 	c = (color & c);
 	color = 0;
-	for (unsigned char i = 0; i < 8 / bit + 1; i++) {
+	for (unsigned i = 0; i < 8 / bit + 1; i++) {
 		color = (color | ((c >> (bit * i))));
 	}
 	return color;
@@ -55,8 +55,9 @@ void random_dithering(vector<unsigned char>& pixel, int& h, int& w, int& bit, in
 	double now, bm;
 	for (int i = 0; i < h * w; i++) {
 		now = (double)pixel[i] / (double)color;
-		bm = (double)rand() / (double)(RAND_MAX - 1) - 0.5;
+		bm = (double)rand() / (double)RAND_MAX - 0.5;
 		now = (now + bm > 1 ? 1 : (now + bm < 0 ? 0 : now + bm));
+
 		pixel[i] = nearest_color(now * color, bit, color);
 	}
 }
@@ -182,14 +183,14 @@ void halftone(vector<unsigned char>& pixel, int& h, int& w, int& bit, int& color
 	double bm, now;
 	for (int i = 0; i < h * w; i++) {
 		now = (double)pixel[i] / (double)color;
-		bm = halftone_matrix[(i / w) % 4][(i % w) % 4] - 0.5;
+		bm = halftone_matrix[(i / w) % 4][(i % w) % 4] - 0.46875;
 		now = (now + bm > 1 ? 1 : (now + bm < 0 ? 0 : now + bm));
 		pixel[i] = nearest_color(now * color, bit, color);
 	}
 }
 
 int main(int argc, char* argv[]) {
-	srand(time(0));
+	//srand(time(0));
 	if (argc != 7) {
 		cerr << "Invalid request";
 		return 1;
@@ -218,7 +219,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (!(p == 'P' && (number == '5' || number == '6')) || h <= 0 || w <= 0 || color > 255 || color <= 0) {
-		cerr << "Incorrect data in the file ";
+		cerr << "Incorrect data in the file";
 		fclose(fin);
 		return 1;
 	}
@@ -250,22 +251,22 @@ int main(int argc, char* argv[]) {
 	}
 
 	fclose(fin);
-	/*for (int i = 0; i < h * w; i++) {
-		double now = (double)pixel[i] / (double)color;
-		if (gamma != 0)
-			pixel[i] = pow(now, 1. / gamma) * (double)color;
-		else
-			if (now <= 0.04045) {
-				pixel[i] = (25.0 * now / 323) * (double)color;
-			}
-			else {
-				pixel[i] = (pow((200 * now + 11) / 211.0, 12.0 / 5.0) > 255 ? 255 : pow((200 * now + 11) / 211.0, 12.0 / 5.0)) * (double)color;
-			}
-	}*/
-
 
 	if (grad)
 		gradient(pixel, h, w);
+
+	for (int i = 0; i < h * w; i++) {
+		double now = (double)pixel[i] / (double)255;
+		if (gamma != 0)
+			pixel[i] = pow(now, gamma) * 255 > 255 ? 255 : pow(now, gamma) * 255;
+		else
+			if (now <= 0.0031308) {
+				pixel[i] = (323.0 * now / 25.0) * (double)color;
+			}
+			else {
+				pixel[i] = ((211 * pow(now, 5.0 / 12.0) - 11) / 200.0) * (double)color;
+			}
+	}
 
 	if (diz_type == 0) {
 		no_dithering(pixel, h, w, bits, color);
@@ -292,18 +293,6 @@ int main(int argc, char* argv[]) {
 		halftone(pixel, h, w, bits, color);
 	}
 
-	for (int i = 0; i < h * w; i++) {
-		double now = (double)pixel[i] / (double)255;
-		if (gamma != 0)
-			pixel[i] = pow(now, gamma) * 255 > 255 ? 255 : pow(now, gamma) * 255;
-		else
-			if (now <= 0.0031308) {
-				pixel[i] = (323.0 * now / 25.0) * (double)color;
-			}
-			else {
-				pixel[i] = ((211 * pow(now, 5.0 / 12.0) - 11) / 200.0) * (double)color;
-			}
-	}
 
 	FILE* fout = fopen(name_out.c_str(), "wb");
 
