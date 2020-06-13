@@ -1,4 +1,4 @@
-﻿#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <string>	
 #include <vector>
@@ -104,7 +104,7 @@ void from_HS_RGB(double& h, double& c, double& x, double& r, double& g, double& 
 
 void from_HSL(image& im) {
 	for (int i = 0; i < im.pixel.size(); i++) {
-		double h = im.pixel[i].f, s = im.pixel[i].s * 1. / 100, l = im.pixel[i].t * 1. / 100;
+		double h = im.pixel[i].f / 255. * 360, s = im.pixel[i].s * 1. / 100, l = im.pixel[i].t * 1. / 100;
 		double c = (1 - fabs(2 * l - 1)) * s;
 		double x = c * (1 - fabs(((h / 60) - (int)(h / 60)) + (int)(h / 60) % 2 - 1));
 		double m = l - c / 2;
@@ -142,7 +142,7 @@ void to_HSL(image& im) {
 
 		s = d != 0 ? d / (1 - fabs(2 * l - 1)) : 0;
 
-		im.pixel[i].f = round(h);
+		im.pixel[i].f = round(h / 360. * 255.);
 		im.pixel[i].s = round(s * 100);
 		im.pixel[i].t = round(l * 100);
 	}
@@ -150,7 +150,7 @@ void to_HSL(image& im) {
 
 void from_HSV(image& im) {
 	for (int i = 0; i < im.pixel.size(); i++) {
-		double h = im.pixel[i].f, s = im.pixel[i].s * 1. / 100, v = im.pixel[i].t * 1. / 100;
+		double h = im.pixel[i].f / 255. * 360, s = im.pixel[i].s * 1. / 100, v = im.pixel[i].t * 1. / 100;
 		double c = s * v;
 		double x = c * (1 - fabs(((h / 60) - (int)(h / 60)) + (int)(h / 60) % 2 - 1));
 		double m = v - c;
@@ -188,7 +188,7 @@ void to_HSV(image& im) {
 
 		s = cmax != 0 ? d / (cmax) : 0;
 
-		im.pixel[i].f = round(h);
+		im.pixel[i].f = round(h / 360. * 255.);
 		im.pixel[i].s = round(s * 100);
 		im.pixel[i].t = round(cmax * 100);
 	}
