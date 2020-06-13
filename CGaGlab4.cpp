@@ -128,6 +128,7 @@ void to_HSL(image& im) {
 			h = 0;
 		else if (cmax == r) {
 			double k = (g - b) / d;
+			k = k > 0 ? k : 360 + k;
 			h = 60 * (k - int(k) + int(k) % 6);
 		}
 		else if (cmax == g) {
@@ -174,6 +175,7 @@ void to_HSV(image& im) {
 			h = 0;
 		else if (cmax == r) {
 			double k = (g - b) / d;
+			k = k > 0 ? k : 360 + k;
 			h = 60 * (k - int(k) + int(k) % 6);
 		}
 		else if (cmax == g) {
