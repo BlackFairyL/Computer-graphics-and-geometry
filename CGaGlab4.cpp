@@ -104,7 +104,7 @@ void from_HS_RGB(double& h, double& c, double& x, double& r, double& g, double& 
 
 void from_HSL(image& im) {
 	for (int i = 0; i < im.pixel.size(); i++) {
-		double h = im.pixel[i].f / 255. * 360, s = im.pixel[i].s * 1. / 100, l = im.pixel[i].t * 1. / 100;
+		double h = im.pixel[i].f / 255. * 360, s = im.pixel[i].s * 1. / 255, l = im.pixel[i].t * 1. / 255;
 		double c = (1 - fabs(2 * l - 1)) * s;
 		double x = c * (1 - fabs(((h / 60) - (int)(h / 60)) + (int)(h / 60) % 2 - 1));
 		double m = l - c / 2;
@@ -119,7 +119,7 @@ void from_HSL(image& im) {
 
 void to_HSL(image& im) {
 	for (int i = 0; i < im.pixel.size(); i++) {
-		double r = im.pixel[i].f * 1. / 255, g = im.pixel[i].s * 1. / 255, b = im.pixel[i].t * 1. / 255;
+		double r = im.pixel[i].f * 1. / 255., g = im.pixel[i].s * 1. / 255., b = im.pixel[i].t * 1. / 255.;
 		double cmax = max({ r, g, b }), cmin = min({ r, g, b });
 		double d = cmax - cmin;
 
@@ -138,14 +138,14 @@ void to_HSL(image& im) {
 			h = 60 * ((r - g) / d + 4);
 		}
 		
-		double l = (cmax + cmin) / 2;
+		double l = (cmax + cmin) / 2.;
 		double s = 0;
 
-		s = d != 0 ? d / (1 - fabs(2 * l - 1)) : 0;
+		s = l != 0 ? d / (1 - fabs(2 * l - 1)) : 0;
 
 		im.pixel[i].f = round(h / 360. * 255.);
-		im.pixel[i].s = round(s * 100);
-		im.pixel[i].t = round(l * 100);
+		im.pixel[i].s = round(s * 255);
+		im.pixel[i].t = round(l * 255);
 	}
 }
 
@@ -316,7 +316,6 @@ int main(int argc, char* argv[]) {
 		cerr << "Invalid arguments";
 		return 1;
 	}
-
 	vector<string> space = { "RGB", "HSL", "HSV", "YCbCr.601", "YCbCr.709", "YCoCg", "CMY" };
 	
 	int flag = 0;
@@ -346,7 +345,7 @@ int main(int argc, char* argv[]) {
 			return 1;
 		}
 		int h = im.h, w = im.w;
-		im.pixel.resize(h * w);
+		im.pixel.resize(h * w, {0, 0, 0 });
 		pix new_pix;
 		fread(&im.pixel[0], sizeof(pix), h * w, fin);
 		fclose(fin);
@@ -367,18 +366,26 @@ int main(int argc, char* argv[]) {
 				return 1;
 			}
 			int h = im.h, w = im.w;
-			im.pixel.resize(h * w);
-			for (int j = 0; j < h * w; j++) {
-				unsigned char c;
-				fread(&c, sizeof(unsigned char), 1, fin);
-				if (i == 0)
-					im.pixel[j].f = c;
-				if (i == 1)
-					im.pixel[j].s = c;
-				if (i == 2)
-					im.pixel[j].t = c;
+			if(i == 0)
+				im.pixel.resize(h * w);
+			vector<unsigned char> p(h * w, 0);
+			int cnt = fread(&p[0], 1, p.size(), fin);
+			if (cnt != h * w) {
+				cerr << "Invalid input file";
+				fclose(fin);
+				return 1;
 			}
 			fclose(fin);
+			for (int j = 0; j < h * w; j++) {
+
+				if (i == 0)
+					im.pixel[j].f = p[j];
+				if (i == 1)
+					im.pixel[j].s = p[j];
+				if (i == 2)
+					im.pixel[j].t = p[j];
+			}
+			
 		}
 	}
 
@@ -422,6 +429,7 @@ int main(int argc, char* argv[]) {
 		fclose(fout);
 	}
 	else {
+		vector<unsigned char> p(im.pixel.size(), 0);
 		for (int i = 0; i < 3; i++) {
 			string new_name = name_out, s = "_";
 			s += char('1' + i);
@@ -434,16 +442,19 @@ int main(int argc, char* argv[]) {
 			}
 			im.number = '5';
 			im.print_header(fout);
-
+		
 			for (int j = 0; j < im.pixel.size(); j++) {
 				
 				if (i == 0)
-					fwrite(&im.pixel[j].f, sizeof(unsigned char), 1, fout);
+					p[j] = im.pixel[j].f;
 				if (i == 1)
-					fwrite(&im.pixel[j].s, sizeof(unsigned char), 1, fout);
+					p[j] = im.pixel[j].s;
 				if (i == 2)
-					fwrite(&im.pixel[j].t, sizeof(unsigned char), 1, fout);
+					p[j] = im.pixel[j].t;
 			}
+			
+			fwrite(&p[0], 1, p.size(), fout);
+
 			fclose(fout);
 		}
 	}
